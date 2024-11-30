@@ -55,7 +55,7 @@
         
         <repository>
             <id>nexusRepo</id>
-            <url>http://54.87.53.30:8081/repository/maven-releases/</url>
+            <url>http://54.87.53.30:8081/repository/maven-repo/</url>
         </repository>
     </distributionManagement>
     
