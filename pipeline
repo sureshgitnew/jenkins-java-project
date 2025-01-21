@@ -1,0 +1,58 @@
+pipeline {
+    agent any
+    environment {
+        NEXUS_URL = 'http://98.81.247.239:8081/repository/develop/'
+        NEXUS_CREDENTIALS_ID = 'nexus-credentials'
+        TOMCAT_URL = 'http://54.164.76.97:8080/manager/'
+        TOMCAT_CREDENTIALS_ID = 'tomcat-credentials'
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                git 'https://github.com/sureshgitnew/jenkins-java-project.git'
+            }
+        }
+        stage('Test') {
+            steps {
+                sh 'mvn clean'
+            }
+        }
+        stage('Build') {
+            steps {
+                sh 'mvn install package'
+            }
+        }
+        stage('Artifact Upload to Nexus') {
+            steps {
+                script {
+                    // Use withCredentials block to inject Nexus credentials
+                    withCredentials([usernamePassword(credentialsId: 'nexus-credentials', usernameVariable: 'NEXUS_USERNAME', passwordVariable: 'NEXUS_PASSWORD')]) {
+                        def artifactName = "target/NETFLIX-1.2.2.war"
+                        // Use the injected credentials in the curl command
+                        sh """
+                            curl -u ${NEXUS_USERNAME}:${NEXUS_PASSWORD} --upload-file ${artifactName} ${NEXUS_URL}
+                        """
+                    }
+                }
+            }
+        }
+        stage('Deploy to Tomcat') {
+            steps {
+                deploy adapters: [
+                    tomcat9(
+                        credentialsId: TOMCAT_CREDENTIALS_ID,
+                        url: TOMCAT_URL
+                    )
+                ], contextPath: 'netflix2', war: 'target/NETFLIX-1.2.2.war'
+            }
+        }
+    }
+    post {
+        success {
+            echo 'Build and Deployment successful.'
+        }
+        failure {
+            echo 'Build or Deployment failed.'
+        }
+    }
+}
